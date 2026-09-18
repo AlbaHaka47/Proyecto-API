@@ -2,32 +2,35 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const db = require('../db');
+const { body, validationResult } = require('express-validator');
 
 const router = express.Router();
 
 
 // REGISTRO
-router.post('/register', async (req, res) => {
+router.post(
+    '/register',
+    body('email')
+        .isEmail()
+        .withMessage('El email no es válido'),
+
+    body('password')
+        .isLength({ min: 6 })
+        .withMessage('La contraseña debe tener al menos 6 caracteres'),
+
+    body('nombre')
+        .notEmpty()
+        .withMessage('El nombre es obligatorio'),
+        
+    async (req, res) => {
 
     const { nombre, email, password } = req.body;
 
-    if (!nombre || !email || !password) {
-        return res.status(400).json({
-            mensaje: 'Todos los campos son obligatorios'
-        });
-    }
+    const errores = validationResult(req);
 
-    const emailValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    if (!emailValido.test(email)) {
+    if (!errores.isEmpty()) {
         return res.status(400).json({
-            mensaje: 'El email no es válido'
-        });
-    }
-
-    if (password.length < 6) {
-        return res.status(400).json({
-            mensaje: 'La contraseña debe tener al menos 6 caracteres'
+            errores: errores.array()
         });
     }
 
@@ -79,73 +82,93 @@ router.post('/register', async (req, res) => {
 
 
 // LOGIN
-router.post('/login', async (req, res) => {
+router.post(
+    '/login',
 
-    const { email, password } = req.body;
+    body('email')
+        .isEmail()
+        .withMessage('El email no es válido'),
 
-    if (!email || !password) {
-        return res.status(400).json({
-            mensaje: 'Email y contraseña son obligatorios'
-        });
-    }
+    body('password')
+        .notEmpty()
+        .withMessage('La contraseña es obligatoria'),
 
-    const sql = 'SELECT * FROM usuarios WHERE email = ?';
+    async (req, res) => {
 
-    db.query(
-        sql,
-        [email],
-        async (error, resultados) => {
+        const { email, password } = req.body;
 
-            if (error) {
-                console.error(error);
+        const errores = validationResult(req);
 
-                return res.status(500).json({
-                    mensaje: 'Error del servidor'
-                });
-            }
-
-            if (resultados.length === 0) {
-                return res.status(401).json({
-                    mensaje: 'Email o contraseña incorrectos'
-                });
-            }
-
-            const usuario = resultados[0];
-
-            const passwordCorrecta = await bcrypt.compare(
-                password,
-                usuario.password
-            );
-
-            if (!passwordCorrecta) {
-                return res.status(401).json({
-                    mensaje: 'Email o contraseña incorrectos'
-                });
-            }
-
-            const token = jwt.sign(
-                {
-                    id: usuario.id,
-                    email: usuario.email
-                },
-                process.env.JWT_SECRET,
-                {
-                    expiresIn: '1h'
-                }
-            );
-
-            res.json({
-                mensaje: 'Login correcto',
-                token: token,
-                usuario: {
-                    id: usuario.id,
-                    nombre: usuario.nombre,
-                    email: usuario.email
-                }
+        if (!errores.isEmpty()) {
+            return res.status(400).json({
+                errores: errores.array()
             });
         }
-    );
-});
+
+        const sql = 'SELECT * FROM usuarios WHERE email = ?';
+
+        db.query(
+            sql,
+            [email],
+            async (error, resultados) => {
+
+                if (error) {
+                    console.error(error);
+
+                    return res.status(500).json({
+                        mensaje: 'Error del servidor'
+                    });
+                }
+
+                if (resultados.length === 0) {
+                    return res.status(401).json({
+                        mensaje: 'Email o contraseña incorrectos'
+                    });
+                }
+
+                const usuario = resultados[0];
+
+                const passwordCorrecta = await bcrypt.compare(
+                    password,
+                    usuario.password
+                );
+
+                if (!passwordCorrecta) {
+                    return res.status(401).json({
+                        mensaje: 'Email o contraseña incorrectos'
+                    });
+                }
+
+                const token = jwt.sign(
+                    {
+                        id: usuario.id,
+                        email: usuario.email
+                    },
+                    process.env.JWT_SECRET,
+                    {
+                        expiresIn: '1h'
+                    }
+                );
+
+                res.cookie('token', token, {
+                    httpOnly: true,
+                    secure: false,
+                    sameSite: 'lax',
+                    maxAge: 60 * 60 * 1000
+                });
+
+                res.json({
+                    mensaje: 'Login correcto',
+                    usuario: {
+                        id: usuario.id,
+                        nombre: usuario.nombre,
+                        email: usuario.email
+                    }
+                });
+            }
+        );
+    }
+);
 
 
 module.exports = router;

@@ -3,25 +3,31 @@ const jwt = require('jsonwebtoken');
 function verificarToken(req, res, next) {
 
     const authHeader = req.headers.authorization;
+    const tokenCookie = req.cookies.token;
 
     // Comprobar que existe el header
-    if (!authHeader) {
+   let token;
+
+    if (tokenCookie) {
+        token = tokenCookie;
+    } else if (authHeader) {
+
+        const partes = authHeader.split(' ');
+
+        if (partes.length !== 2 || partes[0] !== 'Bearer' || !partes[1]) {
+            return res.status(401).json({
+                mensaje: 'Formato de autorización inválido'
+            });
+        }
+
+        token = partes[1];
+
+    } else {
         return res.status(401).json({
             mensaje: 'No se proporcionó un token'
         });
     }
-
-    // Comprobar que tiene el formato: Bearer TOKEN
-    const partes = authHeader.split(' ');
-
-    if (partes.length !== 2 || partes[0] !== 'Bearer' || !partes[1]) {
-        return res.status(401).json({
-            mensaje: 'Formato de autorización inválido'
-        });
-    }
-
-    const token = partes[1];
-
+    
     try {
 
         const usuario = jwt.verify(
