@@ -5,8 +5,8 @@ function verificarToken(req, res, next) {
     const authHeader = req.headers.authorization;
     const tokenCookie = req.cookies.token;
 
-    // Comprobar que existe el header
-   let token;
+    // Buscar el token en la cookie o en Authorization
+    let token;
 
     if (tokenCookie) {
         token = tokenCookie;

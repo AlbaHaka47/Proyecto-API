@@ -19,6 +19,7 @@ router.post(
         .withMessage('La contraseña debe tener al menos 6 caracteres'),
 
     body('nombre')
+        .trim()
         .notEmpty()
         .withMessage('El nombre es obligatorio'),
 

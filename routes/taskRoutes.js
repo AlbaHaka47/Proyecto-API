@@ -85,13 +85,14 @@ router.put(
 
     const { id } = req.params;
     const { titulo, descripcion, completada } = req.body;
-    const usuarioId = req.usuario.id;
-    
+
     if (!Number.isInteger(Number(id)) || Number(id) <= 0) {
-    return res.status(400).json({
-        mensaje: 'El ID de la tarea no es válido'
-    });
-}
+        return res.status(400).json({
+            mensaje: 'El ID de la tarea no es válido'
+        });
+    }
+
+    const usuarioId = req.usuario.id;
 
     if (typeof completada !== 'boolean') {
         return res.status(400).json({
@@ -150,13 +151,14 @@ router.delete(
     (req, res) => {
 
     const { id } = req.params;
-    const usuarioId = req.usuario.id;
 
     if (!Number.isInteger(Number(id)) || Number(id) <= 0) {
         return res.status(400).json({
             mensaje: 'El ID de la tarea no es válido'
         });
     }
+
+    const usuarioId = req.usuario.id;
 
     const sql = `
         DELETE FROM tareas
