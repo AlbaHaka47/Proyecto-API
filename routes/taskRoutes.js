@@ -78,11 +78,20 @@ router.get('/', verificarToken, (req, res) => {
 
 
 //Ruta para actualizar una tarea existente
-router.put('/:id', verificarToken, (req, res) => {
+router.put(
+    '/:id',
+    verificarToken,
+    (req, res) => {
 
     const { id } = req.params;
     const { titulo, descripcion, completada } = req.body;
     const usuarioId = req.usuario.id;
+    
+    if (!Number.isInteger(Number(id)) || Number(id) <= 0) {
+    return res.status(400).json({
+        mensaje: 'El ID de la tarea no es válido'
+    });
+}
 
     if (typeof completada !== 'boolean') {
         return res.status(400).json({
@@ -135,10 +144,19 @@ router.put('/:id', verificarToken, (req, res) => {
 });
 
 //Ruta para eliminar una tarea existente
-router.delete('/:id', verificarToken, (req, res) => {
+router.delete(
+    '/:id',
+    verificarToken,
+    (req, res) => {
 
     const { id } = req.params;
     const usuarioId = req.usuario.id;
+
+    if (!Number.isInteger(Number(id)) || Number(id) <= 0) {
+        return res.status(400).json({
+            mensaje: 'El ID de la tarea no es válido'
+        });
+    }
 
     const sql = `
         DELETE FROM tareas

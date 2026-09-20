@@ -21,7 +21,7 @@ router.post(
     body('nombre')
         .notEmpty()
         .withMessage('El nombre es obligatorio'),
-        
+
     async (req, res) => {
 
     const { nombre, email, password } = req.body;
@@ -170,5 +170,13 @@ router.post(
     }
 );
 
+router.post('/logout', (req, res) => {
+
+    res.clearCookie('token');
+
+    res.json({
+        mensaje: 'Logout correcto'
+    });
+});
 
 module.exports = router;
