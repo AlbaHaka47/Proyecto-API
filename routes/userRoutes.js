@@ -88,4 +88,86 @@ router.put('/perfil', verificarToken, (req, res) => {
     );
 });
 
+// Eliminar la cuenta del usuario autenticado
+router.delete('/perfil', verificarToken, (req, res) => {
+
+    const usuarioId = req.usuario.id;
+
+    db.beginTransaction((error) => {
+
+        if (error) {
+            console.error(error);
+
+            return res.status(500).json({
+                mensaje: 'Error al iniciar la operación'
+            });
+        }
+
+        // Primero eliminamos las tareas del usuario
+        const sqlTareas = `
+            DELETE FROM tareas
+            WHERE usuario_id = ?
+        `;
+
+        db.query(sqlTareas, [usuarioId], (error) => {
+
+            if (error) {
+                return db.rollback(() => {
+                    console.error(error);
+
+                    res.status(500).json({
+                        mensaje: 'Error al eliminar las tareas'
+                    });
+                });
+            }
+
+            // Después eliminamos al usuario
+            const sqlUsuario = `
+                DELETE FROM usuarios
+                WHERE id = ?
+            `;
+
+            db.query(sqlUsuario, [usuarioId], (error, resultado) => {
+
+                if (error) {
+                    return db.rollback(() => {
+                        console.error(error);
+
+                        res.status(500).json({
+                            mensaje: 'Error al eliminar el usuario'
+                        });
+                    });
+                }
+
+                if (resultado.affectedRows === 0) {
+                    return db.rollback(() => {
+                        res.status(404).json({
+                            mensaje: 'Usuario no encontrado'
+                        });
+                    });
+                }
+
+                db.commit((error) => {
+
+                    if (error) {
+                        return db.rollback(() => {
+                            console.error(error);
+
+                            res.status(500).json({
+                                mensaje: 'Error al confirmar la eliminación'
+                            });
+                        });
+                    }
+
+                    res.clearCookie('token');
+
+                    res.json({
+                        mensaje: 'Cuenta eliminada correctamente'
+                    });
+                });
+            });
+        });
+    });
+});
+
 module.exports = router;

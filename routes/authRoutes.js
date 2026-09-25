@@ -172,12 +172,15 @@ router.post(
 );
 
 router.post('/logout', (req, res) => {
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: false,
+    sameSite: 'lax'
+  });
 
-    res.clearCookie('token');
-
-    res.json({
-        mensaje: 'Logout correcto'
-    });
+  res.json({
+    mensaje: 'Sesión cerrada correctamente'
+  });
 });
 
 module.exports = router;
